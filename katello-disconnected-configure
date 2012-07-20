@@ -1,0 +1,188 @@
+#!/usr/bin/python
+import cStringIO
+import csv
+import glob
+import json
+import os
+import pycurl
+import re
+import shutil
+import tempfile
+import types
+import sys
+import unicodedata
+from optparse import OptionParser
+from zipfile import ZipFile
+
+
+parser = OptionParser()
+parser.add_option("-m", "--manifest", dest="manifest",
+                  help="read manifest from FILE", metavar="FILE")
+parser.add_option("-v", "--verbose", dest="verbose", help="verbose mode")
+parser.add_option("-e", "--everything", dest="everything", help="create repos for everything (beta, iso, srpms, debug rpms)")
+parser.add_option("-a", "--arch", dest="arch", help="only create repos for a specific arch")
+parser.add_option("-s", "--script_output_dir", dest="script_output_dir",
+                  help="write generation scripts to DIRECTORY", metavar="DIRECTORY")
+parser.add_option("-o", "--output_dir", dest="output_dir",
+                  help="write repo tree to DIRECTORY", metavar="DIRECTORY")
+parser.add_option("-u", "--uncommon", dest="enable_uncommon", default=False,
+                  help="sync repos that are not commonly used (betas, srpms, isos, debug rpms)")
+
+(options, args) = parser.parse_args()
+
+CDN_HOSTNAME = 'https://cdn.redhat.com/'
+CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
+REPO_CREATE_STR = "pulp-admin repo create --id %s --feed %s --feed_ca %s --feed_cert %s"
+REPO_SYNC_STR = "pulp-admin repo sync --id %s"
+REPO_EXPORT_STR = "pulp-admin repo export --id %s -t %s"
+
+url_cache = {}
+
+def fetch_listing(url, cert_location):
+    if type(url) == types.UnicodeType:
+        #pycurl does not accept unicode strings for a URL, so we need to convert
+        url = unicodedata.normalize('NFKD', url).encode('ascii','ignore')
+
+    if url_cache.get(url, False):
+        return url_cache[url]
+
+    buf = cStringIO.StringIO()
+    curl.setopt(curl.URL, url)
+    curl.setopt(curl.WRITEFUNCTION, buf.write)
+    curl.setopt(curl.SSLCERT, cert_location)
+    curl.setopt(curl.CAINFO, CLIENT_CA_CERT)
+    curl.perform()
+    status = curl.getinfo(curl.HTTP_CODE)
+    #print status
+
+    listing = buf.getvalue()
+    buf.close()
+    url_cache[url] = listing
+    return listing
+
+def expand_variable(url, var, cert_location):
+    url_prefix = url[0:url.find('$')]
+    fetch_url = CDN_HOSTNAME + url_prefix + '/listing'
+    releases = fetch_listing(fetch_url, cert_location).split('\n')
+    expanded_urls = []
+    for release in releases:
+        expanded_urls.append(url.replace(var, release))
+    return expanded_urls
+
+def create_dir(directory, cert_location, with_listing=False):
+    try:
+    #    print "creating dir %s" % directory
+        os.makedirs(options.output_dir + directory)
+    except OSError, e:
+        # if the dir is already there, pass
+        if e.errno == 17:
+            pass
+    if with_listing:
+        listing_file = open(options.output_dir + directory + '/listing', 'w')
+        listing_file.writelines(fetch_listing(CDN_HOSTNAME + directory + '/listing', cert_location))
+        listing_file.close()
+
+
+curl = pycurl.Curl()
+
+try:
+    workdir = tempfile.mkdtemp() # create dir
+    shutil.copy(options.manifest, workdir)
+    print("extracting manifest") 
+    zip_file = ZipFile(options.manifest, "r")
+    zip_file.extractall(workdir)
+    zip_file = ZipFile(os.path.join(workdir, "consumer_export.zip"), "r")
+    zip_file.extractall(workdir)
+except:
+    print "unable to exttract manifest"
+    raise
+
+try:
+    os.makedirs(options.script_output_dir)
+    sync_writer = open(options.script_output_dir + "/sync.list", "wb")
+    export_writer = open(options.script_output_dir + "/export.list", "wb")
+except:
+    print "unable to create output scripts"
+    raise
+
+entitlement_files = glob.glob(os.path.join(workdir, "export", "entitlements", "*.json"))
+product_cert_mapping = {}
+for entitlement_file in entitlement_files:
+    entitlement_fh = open(entitlement_file)
+    entitlement_json = json.load(entitlement_fh)
+    # we only ever have one cert in here for now, but this might change in the future.
+    cert = entitlement_json['certificates'].pop()
+
+    cert_path = os.path.join(workdir, "export", "entitlement_certificates", "%s.pem" % cert['serial']['serial'])
+    product_cert_mapping[entitlement_json['pool']['productId']] = cert_path
+
+
+print("reading products")
+products = glob.glob(os.path.join(workdir, "export", "products", "*.json"))
+
+full_content_urls = []
+for product in products:
+    product_file = open(product)
+    product_json = json.load(product_file)
+    try:
+        cert_location  = product_cert_mapping[product_json['id']]
+    except KeyError:
+        # if there's no mapping for this product, just skip
+        continue
+    
+    for productContent in product_json['productContent']:
+        contentURL = productContent['content']['contentUrl']
+        contentName = productContent['content']['name']
+        sys.stdout.write(contentName)
+        sys.stdout.flush()
+            
+        # we have the contentURL, now write the dirs out locally and expand/walk the content tree
+        # start at the first var that needs expansion
+        content_prefix = contentURL[0:contentURL.find('$')]
+        create_dir(content_prefix, cert_location, with_listing=True)
+        # top-level listings are created, step through the releases now
+        release_dirs = expand_variable(contentURL, '$releasever', cert_location)
+        for rd in release_dirs:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            create_dir(rd[0:rd.find('$')], cert_location, with_listing=True)
+            arches_dirs = expand_variable(rd, '$basearch', cert_location)
+            for ad in arches_dirs:
+                # if two products have the same repo listed, do not add twice to url list
+                if ad not in full_content_urls:
+                    full_content_urls.append(ad)
+                create_dir(ad, cert_location)
+        print "\n"
+
+print "\ncreating repos in pulp"
+beta_parser = re.compile(r'beta')
+uncommon_parser = re.compile(r'beta|source|debug|iso')
+for u in full_content_urls:
+    if not options.enable_uncommon and uncommon_parser.search(u):
+            continue
+
+    s = u.split('/')
+    if u.endswith("os"):
+        repo_id = s[6] + '_' + s[4] + '_' + '_'.join(s[7:-1])
+    else:
+        repo_id = s[6] + '_' + s[4] + '_' + '_'.join(s[7:])
+
+    # we need to append this to the repoid, otherwise it will conflict with the dist version
+    if beta_parser.search(u):
+        repo_id += "_beta"
+
+    sys.stdout.write('.')
+    sys.stdout.flush()
+    try:
+        # TODO: this should call directly to pulp's rest api, instead of using pulp-admin
+        os.system(REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, CLIENT_CA_CERT, cert_location) + "> /dev/null")
+        sync_writer.write(REPO_SYNC_STR % repo_id + '\n')
+        export_writer.write(REPO_EXPORT_STR % (repo_id, options.output_dir + u) + '\n')
+    except:
+        print "unable to write file"
+        raise
+
+sync_writer.close()
+export_writer.close()
+print "\n"
+
