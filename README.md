@@ -25,7 +25,8 @@ pulp-admin repo list | awk 'BEGIN{RS="Id";FS="\n" } {split($1,a," ");split($4,b,
 TODO
 ----
 
-* replace horrible one-liner with a small script
+* replace one-liner with a small script
+* allow configuration of CA cert location via command-line
 * get oauth working, replace shell calls to pulp-admin
 * implement a better way to do repo selection, perhaps with python-okaara
 * maybe have some way to tell CFSE which repos you want to sync without having to click through the UI
