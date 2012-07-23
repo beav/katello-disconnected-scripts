@@ -4,7 +4,8 @@ katello-disconnected-scripts
 how to use
 ----------
 
-* install pulp
+* install pulp and pulp-admin (see http://pulpproject.org/ug/UGInstallation.html)
+* Initialize the pulp server with `service pulp-server init` and `service pulp-server start`
 * run `pulp-admin auth login --username admin` (this step will go away once I get oauth working). You can get the password from `/etc/pulp/pulp.conf`
 * run the script: `python katello-disconnected-configure -m manifest.zip -o /path/to/export/location -s sync_output_script_dir`.<del>Not all of the command-line arguments listed in `--help` currently work.</del>
 
