@@ -28,11 +28,13 @@ parser.add_option("-o", "--output_dir", dest="output_dir",
                   help="write repo tree to DIRECTORY", metavar="DIRECTORY")
 parser.add_option("-u", "--uncommon", dest="enable_uncommon", default=False, action="store_true", 
                   help="sync repos that are not commonly used (betas, srpms, isos, debug rpms)")
+parser.add_option("-c", "--ca_cert", dest="cacert", default=None,
+                  help="specify CA cert to use", metavar="FILE")
 
 (options, args) = parser.parse_args()
 
 CDN_HOSTNAME = 'https://cdn.redhat.com/'
-CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
+DEFAULT_CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
 REPO_CREATE_STR = "pulp-admin repo create --id %s --feed %s --feed_ca %s --feed_cert %s"
 REPO_SYNC_STR = "pulp-admin repo sync --id %s"
 REPO_EXPORT_STR = "pulp-admin repo export --id %s -t %s"
@@ -56,9 +58,11 @@ def fetch_listing(url, cert_location):
     curl.setopt(curl.URL, url)
     curl.setopt(curl.WRITEFUNCTION, buf.write)
     curl.setopt(curl.SSLCERT, cert_location)
-    curl.setopt(curl.CAINFO, CLIENT_CA_CERT)
+    curl.setopt(curl.CAINFO, cacert)
     curl.perform()
     status = curl.getinfo(curl.HTTP_CODE)
+    if status != 200:
+      sys.stderr.write("ERROR: status returned was %s", status)
 
     listing = buf.getvalue()
     buf.close()
@@ -89,6 +93,11 @@ def create_dir(directory, cert_location, with_listing=False):
 
 
 curl = pycurl.Curl()
+
+if options.cacert:
+    cacert = options.cacert
+else:
+    cacert = DEFAULT_CLIENT_CA_CERT
 
 try:
     workdir = tempfile.mkdtemp() # create dir
@@ -187,8 +196,8 @@ for u in full_content_urls:
     sys.stdout.flush()
     try:
         # TODO: this should call directly to pulp's rest api, instead of using pulp-admin
-        p_v("executing " +  REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, CLIENT_CA_CERT, cert_location) + "> /dev/null")
-        os.system(REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, CLIENT_CA_CERT, cert_location) + "> /dev/null")
+        p_v("executing " +  REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, cacert, cert_location) + "> /dev/null")
+        os.system(REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, cacert, cert_location) + "> /dev/null")
         p_v("writing commands to files")
         sync_writer.write(REPO_SYNC_STR % repo_id + '\n')
         export_writer.write(REPO_EXPORT_STR % (repo_id, options.output_dir + u) + '\n')

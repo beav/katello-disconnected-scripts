@@ -26,7 +26,7 @@ TODO
 ----
 
 * replace one-liner with a small script
-* allow configuration of CA cert location via command-line
+* <del>allow configuration of CA cert location via command-line</del>
 * get oauth working, replace shell calls to pulp-admin
 * implement a better way to do repo selection, perhaps with python-okaara
 * maybe have some way to tell CFSE which repos you want to sync without having to click through the UI
