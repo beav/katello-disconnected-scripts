@@ -18,14 +18,15 @@ from zipfile import ZipFile
 parser = OptionParser()
 parser.add_option("-m", "--manifest", dest="manifest",
                   help="read manifest from FILE", metavar="FILE")
-parser.add_option("-v", "--verbose", dest="verbose", help="verbose mode")
-parser.add_option("-e", "--everything", dest="everything", help="create repos for everything (beta, iso, srpms, debug rpms)")
+parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
+parser.add_option("-e", "--everything", action="store_true", dest="everything",
+                  help="create repos for everything (beta, iso, srpms, debug rpms)")
 parser.add_option("-a", "--arch", dest="arch", help="only create repos for a specific arch")
 parser.add_option("-s", "--script_output_dir", dest="script_output_dir",
                   help="write generation scripts to DIRECTORY", metavar="DIRECTORY")
 parser.add_option("-o", "--output_dir", dest="output_dir",
                   help="write repo tree to DIRECTORY", metavar="DIRECTORY")
-parser.add_option("-u", "--uncommon", dest="enable_uncommon", default=False,
+parser.add_option("-u", "--uncommon", dest="enable_uncommon", default=False, action="store_true", 
                   help="sync repos that are not commonly used (betas, srpms, isos, debug rpms)")
 
 (options, args) = parser.parse_args()
@@ -37,6 +38,11 @@ REPO_SYNC_STR = "pulp-admin repo sync --id %s"
 REPO_EXPORT_STR = "pulp-admin repo export --id %s -t %s"
 
 url_cache = {}
+
+# print verbose
+def p_v(str):
+    if options.verbose:
+        print str
 
 def fetch_listing(url, cert_location):
     if type(url) == types.UnicodeType:
@@ -53,7 +59,6 @@ def fetch_listing(url, cert_location):
     curl.setopt(curl.CAINFO, CLIENT_CA_CERT)
     curl.perform()
     status = curl.getinfo(curl.HTTP_CODE)
-    #print status
 
     listing = buf.getvalue()
     buf.close()
@@ -150,15 +155,22 @@ for product in products:
             for ad in arches_dirs:
                 # if two products have the same repo listed, do not add twice to url list
                 if ad not in full_content_urls:
+                    p_v("adding url: %s" % ad)
                     full_content_urls.append(ad)
                 create_dir(ad, cert_location)
         print "\n"
 
 print "\ncreating repos in pulp"
 beta_parser = re.compile(r'beta')
+arches_parser = re.compile(options.arch)
 uncommon_parser = re.compile(r'beta|source|debug|iso')
 for u in full_content_urls:
     if not options.enable_uncommon and uncommon_parser.search(u):
+            p_v("uncommon, skipping %s" % u)
+            continue
+
+    if options.arch is not None and not arches_parser.search(u):
+            p_v("disabled arch, skipping %s" % u)
             continue
 
     s = u.split('/')
@@ -175,7 +187,9 @@ for u in full_content_urls:
     sys.stdout.flush()
     try:
         # TODO: this should call directly to pulp's rest api, instead of using pulp-admin
+        p_v("executing " +  REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, CLIENT_CA_CERT, cert_location) + "> /dev/null")
         os.system(REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, CLIENT_CA_CERT, cert_location) + "> /dev/null")
+        p_v("writing commands to files")
         sync_writer.write(REPO_SYNC_STR % repo_id + '\n')
         export_writer.write(REPO_EXPORT_STR % (repo_id, options.output_dir + u) + '\n')
     except:
@@ -184,5 +198,5 @@ for u in full_content_urls:
 
 sync_writer.close()
 export_writer.close()
+p_v("exiting")
 print "\n"
-

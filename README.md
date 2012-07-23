@@ -6,7 +6,7 @@ how to use
 
 * install pulp
 * run `pulp-admin auth login --username admin` (this step will go away once I get oauth working). You can get the password from `/etc/pulp/pulp.conf`
-* run the script: `python katello-disconnected-configure -m manifest.zip -o /path/to/export/location -s sync_output_script_dir`. Not all of the command-line arguments listed in `--help` currently work.
+* run the script: `python katello-disconnected-configure -m manifest.zip -o /path/to/export/location -s sync_output_script_dir`.<del>Not all of the command-line arguments listed in `--help` currently work.</del>
 
 * once the script runs,  you will have two files in your output script dir: sync.list and export.list. If you run `bash -x sync.list`, it will sync everything but will take awhile. You can pare it down a bit before running if you want, but make sure you make the same changes to export.list
 * once the sync completes, run `bash -x export.list`. This will not take as much time as the sync.
