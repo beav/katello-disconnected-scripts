@@ -21,7 +21,8 @@ parser.add_option("-m", "--manifest", dest="manifest",
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
 parser.add_option("-e", "--everything", action="store_true", dest="everything",
                   help="create repos for everything (beta, iso, srpms, debug rpms)")
-parser.add_option("-a", "--arch", dest="arch", help="only create repos for a specific arch")
+# need to fix
+#parser.add_option("-a", "--arch", dest="arch", default=None, help="only create repos for a specific arch")
 parser.add_option("-s", "--script_output_dir", dest="script_output_dir",
                   help="write generation scripts to DIRECTORY", metavar="DIRECTORY")
 parser.add_option("-o", "--output_dir", dest="output_dir",
@@ -62,7 +63,7 @@ def fetch_listing(url, cert_location):
     curl.perform()
     status = curl.getinfo(curl.HTTP_CODE)
     if status != 200:
-      sys.stderr.write("ERROR: status returned was %s", status)
+      raise Exception("ERROR: status code returned from cdn was %s" % status)
 
     listing = buf.getvalue()
     buf.close()
@@ -121,6 +122,7 @@ except:
 
 entitlement_files = glob.glob(os.path.join(workdir, "export", "entitlements", "*.json"))
 product_cert_mapping = {}
+
 for entitlement_file in entitlement_files:
     entitlement_fh = open(entitlement_file)
     entitlement_json = json.load(entitlement_fh)
@@ -129,21 +131,31 @@ for entitlement_file in entitlement_files:
 
     cert_path = os.path.join(workdir, "export", "entitlement_certificates", "%s.pem" % cert['serial']['serial'])
     product_cert_mapping[entitlement_json['pool']['productId']] = cert_path
+    if 'providedProducts' in entitlement_json['pool']:
+        for pp in entitlement_json['pool']['providedProducts']:
+            p_v("provided product found: %s" % pp['productId'])
+            product_cert_mapping[pp['productId']] = cert_path
 
+p_v("cert to product mapping: %s" %  product_cert_mapping)
 
 print("reading products")
 products = glob.glob(os.path.join(workdir, "export", "products", "*.json"))
+p_v("products found: %s" % products)
+
+
 
 full_content_urls = []
 for product in products:
     product_file = open(product)
     product_json = json.load(product_file)
     try:
-        cert_location  = product_cert_mapping[product_json['id']]
+        cert_location = product_cert_mapping[product_json['id']]
     except KeyError:
         # if there's no mapping for this product, just skip
+        p_v("skipping product json %s, not found in mapping" % product)
         continue
     
+    p_v("examining product json %s" % product)
     for productContent in product_json['productContent']:
         contentURL = productContent['content']['contentUrl']
         contentName = productContent['content']['name']
@@ -171,16 +183,16 @@ for product in products:
 
 print "\ncreating repos in pulp"
 beta_parser = re.compile(r'beta')
-arches_parser = re.compile(options.arch)
+#arches_parser = re.compile(options.arch)
 uncommon_parser = re.compile(r'beta|source|debug|iso')
 for u in full_content_urls:
     if not options.enable_uncommon and uncommon_parser.search(u):
             p_v("uncommon, skipping %s" % u)
             continue
 
-    if options.arch is not None and not arches_parser.search(u):
-            p_v("disabled arch, skipping %s" % u)
-            continue
+#    if options.arch is not None and not arches_parser.search(u):
+#            p_v("disabled arch, skipping %s" % u)
+#            continue
 
     s = u.split('/')
     if u.endswith("os"):
