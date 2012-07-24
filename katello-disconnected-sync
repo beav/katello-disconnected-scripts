@@ -1,0 +1,77 @@
+#!/usr/bin/python
+import os
+import re
+import shutil
+import sys
+from optparse import OptionParser
+
+
+usage = "usage: %prog [options]\nThis will sync and/or export repos to a specific directory. Use --help for a full list of options."
+parser = OptionParser(usage=usage, description="")
+parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
+parser.add_option("-s", "--sync", action="store_true", dest="sync",
+                  help="Synchronize channels in file specified with --export-dir")
+parser.add_option("-t", "--status", action="store_true", dest="status", help="obtain status")
+parser.add_option("-r", "--repo-list", dest="repo_list",
+                  help="File containing list of repositories to act on")
+parser.add_option("-e", "--export-dir", dest="export_dir",
+                  help="Directory to use as the disconnected synchronization store", metavar="DIRECTORY")
+
+(options, args) = parser.parse_args()
+
+opt_err = False
+if not (options.sync or options.export_dir or options.status):
+    print "ERROR: One or more of the following are required: --sync, --export-dir, --status."
+    opt_err = True
+if not options.repo_list:
+    print "ERROR: --repo-list is required."
+    opt_err = True
+if opt_err:
+    print usage
+    sys.exit(1)
+
+REPO_SYNC_STR = "pulp-admin repo sync --id %s"
+REPO_SYNC_STATUS_STR = "pulp-admin repo status --id %s"
+REPO_EXPORT_STR = "pulp-admin repo export --id %s --target_dir=%s"
+REPO_EXPORT_STATUS_STR = "pulp-admin repo export --status --id %s"
+
+# print verbose
+def p_v(str):
+    if options.verbose:
+        print str
+
+def sync_repos(repos):
+    for repo in repos:
+        p_v("syncing repo %s" % repo)
+        os.system(REPO_SYNC_STR % (repo))
+
+def export_repos(repos, export_dir):
+    for repo in repos:
+        p_v("exporting repo %s"% repo)
+        os.system(REPO_EXPORT_STR % (repo, options.export_dir + repos[repo]))
+
+def status_repos(repos):
+    for repo in repos:
+        p_v("statusing repo %s"% repo)
+        if options.sync:
+            os.system(REPO_SYNC_STATUS_STR % repo)
+        if options.export_dir:
+            os.system(REPO_EXPORT_STATUS_STR % repo)
+
+f = open(options.repo_list, 'r+')
+repo_list = f.readlines()
+f.close()
+repos = {}
+for repo in repo_list:
+    repo_name=repo.split('\t')[0]
+    repo_dir=repo.split('\t')[1].strip()
+    repos[repo_name] = repo_dir
+if options.sync and not options.status:
+  sync_repos(repos)
+if options.export_dir and not options.status:
+  export_repos(repos, options.export_dir)
+if options.status:
+  status_repos(repos)
+
+p_v("exiting")
+print "\n"

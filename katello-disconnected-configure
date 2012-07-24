@@ -15,7 +15,8 @@ from optparse import OptionParser
 from zipfile import ZipFile
 
 
-parser = OptionParser()
+usage = "usage: %prog [options]\nThis will configure a disconnected environment for katello. Use --help for a list of options."
+parser = OptionParser(usage=usage, description="")
 parser.add_option("-m", "--manifest", dest="manifest",
                   help="read manifest from FILE", metavar="FILE")
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
@@ -29,13 +30,29 @@ parser.add_option("-o", "--output_dir", dest="output_dir",
                   help="write repo tree to DIRECTORY", metavar="DIRECTORY")
 parser.add_option("-u", "--uncommon", dest="enable_uncommon", default=False, action="store_true", 
                   help="sync repos that are not commonly used (betas, srpms, isos, debug rpms)")
-parser.add_option("-c", "--ca_cert", dest="cacert", default=None,
+parser.add_option("-c", "--ca_cert", dest="cacert", default="/etc/rhsm/ca/redhat-uep.pem",
                   help="specify CA cert to use", metavar="FILE")
+parser.add_option("-f", "--force", dest="force", default=False, action="store_true", 
+                  help="overwrite any existing directories and scripts (output,script output)")
 
 (options, args) = parser.parse_args()
 
+opt_err = False
+if not options.manifest:
+    print "ERROR: --manifest is required."
+    opt_err = True
+if not options.output_dir:
+    print "ERROR: --output_dir is required."
+    opt_err = True
+if not options.script_output_dir:
+    print "ERROR: --script_output_dir is required."
+    opt_err = True
+if opt_err:
+    print usage
+    sys.exit(1)
+
 CDN_HOSTNAME = 'https://cdn.redhat.com/'
-DEFAULT_CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
+#DEFAULT_CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
 REPO_CREATE_STR = "pulp-admin repo create --id %s --feed %s --feed_ca %s --feed_cert %s"
 REPO_SYNC_STR = "pulp-admin repo sync --id %s"
 REPO_EXPORT_STR = "pulp-admin repo export --id %s -t %s"
@@ -81,12 +98,20 @@ def expand_variable(url, var, cert_location):
 
 def create_dir(directory, cert_location, with_listing=False):
     try:
-    #    print "creating dir %s" % directory
+        if os.path.exists(options.output_dir):
+            if options.force:
+                shutil.rmtree(options.output_dir)
+        p_v("creating dir %s" % directory)
         os.makedirs(options.output_dir + directory)
     except OSError, e:
         # if the dir is already there, pass
         if e.errno == 17:
             pass
+    try:
+        os.chown(options.output_dir + directory,48,48)
+    except:
+        print("unable to set permissions for apache on %s" % options.output_dir + directory)
+        raise
     if with_listing:
         listing_file = open(options.output_dir + directory + '/listing', 'w')
         listing_file.writelines(fetch_listing(CDN_HOSTNAME + directory + '/listing', cert_location))
@@ -113,9 +138,14 @@ except:
     raise
 
 try:
+    if os.path.exists(options.script_output_dir):
+        if options.force:
+            shutil.rmtree(options.script_output_dir)
     os.makedirs(options.script_output_dir)
-    sync_writer = open(options.script_output_dir + "/sync.list", "wb")
-    export_writer = open(options.script_output_dir + "/export.list", "wb")
+    sync_writer = open(options.script_output_dir + "/sync_all.sh", "wb")
+    export_writer = open(options.script_output_dir + "/export_all.sh", "wb")
+    repos_writer = open(options.script_output_dir + "/repos.list", "wb")
+        
 except:
     print "unable to create output scripts"
     raise
@@ -213,11 +243,14 @@ for u in full_content_urls:
         p_v("writing commands to files")
         sync_writer.write(REPO_SYNC_STR % repo_id + '\n')
         export_writer.write(REPO_EXPORT_STR % (repo_id, options.output_dir + u) + '\n')
+	# vvaldez adding single list file with accompanying script
+        repos_writer.write(repo_id + '\t' + u + '\n')
     except:
         print "unable to write file"
         raise
 
 sync_writer.close()
 export_writer.close()
+repos_writer.close()
 p_v("exiting")
 print "\n"
