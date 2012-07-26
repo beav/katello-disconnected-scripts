@@ -22,40 +22,69 @@ parser.add_option("-m", "--manifest", dest="manifest",
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
 parser.add_option("-e", "--everything", action="store_true", dest="everything",
                   help="create repos for everything (beta, iso, srpms, debug rpms)")
-# need to fix
-#parser.add_option("-a", "--arch", dest="arch", default=None, help="only create repos for a specific arch")
-parser.add_option("-s", "--script_output_dir", dest="script_output_dir",
+parser.add_option("-s", "--script-output-dir", dest="script_output_dir",
                   help="write generation scripts to DIRECTORY", metavar="DIRECTORY")
-parser.add_option("-o", "--output_dir", dest="output_dir",
+parser.add_option("-o", "--output-dir", dest="output_dir",
                   help="write repo tree to DIRECTORY", metavar="DIRECTORY")
 parser.add_option("-u", "--uncommon", dest="enable_uncommon", default=False, action="store_true", 
                   help="sync repos that are not commonly used (betas, srpms, isos, debug rpms)")
-parser.add_option("-c", "--ca_cert", dest="cacert", default="/etc/rhsm/ca/redhat-uep.pem",
+parser.add_option("-C", "--ca-cert", dest="cacert", default="/etc/rhsm/ca/redhat-uep.pem",
                   help="specify CA cert to use", metavar="FILE")
 parser.add_option("-f", "--force", dest="force", default=False, action="store_true", 
                   help="overwrite any existing directories and scripts (output,script output)")
+parser.add_option("-a", "--arches", dest="arches", default=None, help="only create repos for a specific architecture (e.g. x86_64,i386)")
+parser.add_option("-r", "--releases", dest="releases",
+                  help="Only create repos for specific versions (e.g. 6Server,5.4)")
+parser.add_option("-c", "--channels", dest="channels",
+                  help="Only create repos for specific channels (e.g. cf-tools_1.0,subscription-asset-manager_1)")
+parser.add_option("-d", "--dry-run", dest="dryrun", default=False, action="store_true", 
+                  help="Do not create repos, only write scripts to show what would be created")
 
 (options, args) = parser.parse_args()
 
-opt_err = False
-if not options.manifest:
-    print "ERROR: --manifest is required."
-    opt_err = True
-if not options.output_dir:
-    print "ERROR: --output_dir is required."
-    opt_err = True
-if not options.script_output_dir:
-    print "ERROR: --script_output_dir is required."
-    opt_err = True
-if opt_err:
-    print usage
-    sys.exit(1)
-
+VALID_ARCHES = ['i386','x86_64','ia64']
+VALID_RELEASES = ['5.6','5.7','5.8','5Server','6.1','6.2','6.3','6Server']
+VALID_CHANNELS = ['supplementary','vt','optional','cf-tools','productivity','devtoolset','subscription-asset-manager']
 CDN_HOSTNAME = 'https://cdn.redhat.com/'
 #DEFAULT_CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
 REPO_CREATE_STR = "pulp-admin repo create --id %s --feed %s --feed_ca %s --feed_cert %s"
 REPO_SYNC_STR = "pulp-admin repo sync --id %s"
 REPO_EXPORT_STR = "pulp-admin repo export --id %s -t %s"
+
+opt_err = False
+if not options.manifest:
+    print "error: --manifest is required."
+    opt_err = True
+if not options.output_dir:
+    print "error: --output-dir is required."
+    opt_err = True
+if not options.script_output_dir:
+    print "error: --script-output-dir is required."
+    opt_err = True
+if options.arches:
+    arches = options.arches.split(',')
+    for arch in arches:
+        if not arch in VALID_ARCHES:
+            print "error: %s is not in valid list of arches: %s" % (arch, VALID_ARCHES)
+            opt_err = True
+            break
+if options.releases:
+    releases = options.releases.split(',')
+    for release in releases:
+        if not release in VALID_RELEASES:
+            print "error: %s is not in valid list of releases: %s" % (release, VALID_RELEASES)
+            opt_err = True
+            break
+if options.channels:
+    channels = options.channels.split(',')
+    for channel in channels:
+        if not channel in VALID_CHANNELS:
+            print "error: %s is not in valid list of channels: %s" % (channel, VALID_CHANNELS)
+            opt_err = True
+            break
+if opt_err:
+    print usage
+    sys.exit(1)
 
 url_cache = {}
 
@@ -107,16 +136,21 @@ def create_dir(directory, cert_location, with_listing=False):
         # if the dir is already there, pass
         if e.errno == 17:
             pass
-    try:
-        os.chown(options.output_dir + directory,48,48)
-    except:
-        print("unable to set permissions for apache on %s" % options.output_dir + directory)
-        raise
     if with_listing:
         listing_file = open(options.output_dir + directory + '/listing', 'w')
         listing_file.writelines(fetch_listing(CDN_HOSTNAME + directory + '/listing', cert_location))
         listing_file.close()
 
+def chown_dirs(path):
+    p_v("setting permissions to apache(48) on %s" % path)
+    try:
+        os.chown(path,48,48)
+        for root, dirs, files in os.walk(path):
+            for dir in dirs:
+                os.chown(os.path.join(root, dir),48,48)
+    except:
+        print("unable to set permissions for apache on %s" % path)
+        pass
 
 curl = pycurl.Curl()
 
@@ -163,7 +197,7 @@ for entitlement_file in entitlement_files:
     product_cert_mapping[entitlement_json['pool']['productId']] = cert_path
     if 'providedProducts' in entitlement_json['pool']:
         for pp in entitlement_json['pool']['providedProducts']:
-            p_v("provided product found: %s" % pp['productId'])
+            p_v("provided products found: %s" % pp['productId'])
             product_cert_mapping[pp['productId']] = cert_path
 
 p_v("cert to product mapping: %s" %  product_cert_mapping)
@@ -211,20 +245,36 @@ for product in products:
                 create_dir(ad, cert_location)
         print "\n"
 
+chown_dirs(options.output_dir)
 print "\ncreating repos in pulp"
 beta_parser = re.compile(r'beta')
-#arches_parser = re.compile(options.arch)
+if options.arches:
+    arches_parser = re.compile(r'\b(?:%s)\b' % '|'.join(arches))
+if options.releases:
+    releases_parser = re.compile(r'\b(?:%s)\b' % '|'.join(releases))
+if options.channels:
+    channels_parser = re.compile(r'\b(?:%s)\b' % '|'.join(channels))
+if not options.releases:		# Added for channel matching, so releases are not excluded
+    releases_parser = re.compile(r'\b(?:%s)\b' % '|'.join(VALID_RELEASES))
 uncommon_parser = re.compile(r'beta|source|debug|iso')
 for u in full_content_urls:
-    if not options.enable_uncommon and uncommon_parser.search(u):
-            p_v("uncommon, skipping %s" % u)
-            continue
-
-#    if options.arch is not None and not arches_parser.search(u):
-#            p_v("disabled arch, skipping %s" % u)
-#            continue
-
     s = u.split('/')
+    if not options.enable_uncommon and uncommon_parser.search(u):
+        p_v("uncommon, skipping %s" % u)
+        continue
+    if options.arches and not arches_parser.search(u):
+        p_v("arch not specified, skipping %s" % u)
+        continue
+    if options.releases and not releases_parser.search(u):
+        p_v("release not specified, skipping %s" % u)
+        continue
+    if options.channels and not channels_parser.search(u):
+        p_v("checking if %s is a release OS" % u)
+        if u.endswith("os") and releases_parser.search(s[-3]): 	# e.g. it is default or specified release 
+            p_v("valid release, ignoring channel specification for %s" %u)
+        else:
+            p_v("channel not specified, skipping %s" % u)
+            continue
     if u.endswith("os"):
         repo_id = s[6] + '_' + s[4] + '_' + '_'.join(s[7:-1])
     else:
@@ -239,7 +289,8 @@ for u in full_content_urls:
     try:
         # TODO: this should call directly to pulp's rest api, instead of using pulp-admin
         p_v("executing " +  REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, cacert, cert_location) + "> /dev/null")
-        os.system(REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, cacert, cert_location) + "> /dev/null")
+        if not options.dryrun:
+            os.system(REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, cacert, cert_location) + "> /dev/null")
         p_v("writing commands to files")
         sync_writer.write(REPO_SYNC_STR % repo_id + '\n')
         export_writer.write(REPO_EXPORT_STR % (repo_id, options.output_dir + u) + '\n')
