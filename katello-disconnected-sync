@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import sys
+import time
 from optparse import OptionParser
 
 
@@ -11,20 +12,21 @@ parser = OptionParser(usage=usage, description="")
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
 parser.add_option("-s", "--sync", action="store_true", dest="sync",
                   help="Synchronize channels in file specified with --export-dir")
-parser.add_option("-t", "--status", action="store_true", dest="status", help="obtain status")
+parser.add_option("-l", "--status", action="store_true", dest="status", help="obtain status")
 parser.add_option("-r", "--repo-list", dest="repo_list",
                   help="File containing list of repositories to act on")
 parser.add_option("-e", "--export-dir", dest="export_dir",
                   help="Directory to use as the disconnected synchronization store", metavar="DIRECTORY")
+parser.add_option("-w", "--watch", action="store_true", dest="watch", help="Loop through every 5 seconds watching status until CTRL+C is pressed.")
 
 (options, args) = parser.parse_args()
 
 opt_err = False
 if not (options.sync or options.export_dir or options.status):
-    print "ERROR: One or more of the following are required: --sync, --export-dir, --status."
+    print "error: One or more of the following are required: --sync, --export-dir, --status."
     opt_err = True
 if not options.repo_list:
-    print "ERROR: --repo-list is required."
+    print "error: --repo-list is required."
     opt_err = True
 if opt_err:
     print usage
@@ -41,22 +43,55 @@ def p_v(str):
         print str
 
 def sync_repos(repos):
-    for repo in repos:
-        p_v("syncing repo %s" % repo)
-        os.system(REPO_SYNC_STR % (repo))
+    try:
+        for repo in repos:
+            p_v("syncing repo %s" % repo)
+            os.system(REPO_SYNC_STR % (repo))
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except:
+        raise
 
 def export_repos(repos, export_dir):
-    for repo in repos:
-        p_v("exporting repo %s"% repo)
-        os.system(REPO_EXPORT_STR % (repo, options.export_dir + repos[repo]))
+    try:
+        for repo in repos:
+            p_v("exporting repo %s"% repo)
+            os.system(REPO_EXPORT_STR % (repo, options.export_dir + repos[repo]))
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except:
+        raise
 
 def status_repos(repos):
-    for repo in repos:
-        p_v("statusing repo %s"% repo)
-        if options.sync:
-            os.system(REPO_SYNC_STATUS_STR % repo)
-        if options.export_dir:
-            os.system(REPO_EXPORT_STATUS_STR % repo)
+    try:
+        for repo in repos:
+            if options.sync:
+                p_v("statusing repo sync of: %s"% repo)
+                os.system(REPO_SYNC_STATUS_STR % repo)
+            if options.export_dir and not options.sync:		# In the case that both export and sync are specified, only show sync status, otherwise it will attempt to show export status also which will fail untnil the sync is done and export has been initiated
+                p_v("statusing repo export of: %s"% repo)
+                os.system(REPO_EXPORT_STATUS_STR % repo)
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except:
+        raise
+
+def continuous_status_repos(repos):
+    while True:
+        p_v("continuous status loop starting")
+        try:
+            status_repos(repos)
+            print("=========================================================================")
+            print("| Waiting 10 seconds (press CTRL+C to cancel when all repos are synced) |")
+            print("=========================================================================")
+            time.sleep(10)
+            os.system("clear")
+        except KeyboardInterrupt:
+            break
+        except:
+            raise
+
+# main
 
 f = open(options.repo_list, 'r+')
 repo_list = f.readlines()
@@ -67,11 +102,12 @@ for repo in repo_list:
     repo_dir=repo.split('\t')[1].strip()
     repos[repo_name] = repo_dir
 if options.sync and not options.status:
-  sync_repos(repos)
+    sync_repos(repos)
+if (options.sync and options.export_dir and not options.status) or (options.watch):
+    continuous_status_repos(repos)
 if options.export_dir and not options.status:
-  export_repos(repos, options.export_dir)
-if options.status:
-  status_repos(repos)
-
+    export_repos(repos, options.export_dir)
+elif options.status:
+    status_repos(repos)
 p_v("exiting")
 print "\n"
