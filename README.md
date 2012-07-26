@@ -41,18 +41,71 @@ This will only process repos matching the specified criteria, though many more r
 6Server_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6Server/x86_64/cf-tools/1.0/os
 
 `python katello-disconnected-sync --sync -r scripts/repos.list --watch`
-Sync for repository 6Server_server_x86_64 started
-Use "repo status" to check on the progress
-Sync for repository 6.2_server_x86_64 started
-Use "repo status" to check on the progress
-Sync for repository 6Server_server_x86_64_supplementary started
-Use "repo status" to check on the progress
-Sync for repository 6.2_server_x86_64_supplementary started
-Use "repo status" to check on the progress
-Sync for repository 6Server_server_x86_64_cf-tools_1.0 started
-Use "repo status" to check on the progress
-Sync for repository 6.2_server_x86_64_cf-tools_1.0 started
-Use "repo status" to check on the progress
+    Sync for repository 6Server_server_x86_64 started
+    Use "repo status" to check on the progress
+    Sync for repository 6.2_server_x86_64 started
+    Use "repo status" to check on the progress
+    Sync for repository 6Server_server_x86_64_supplementary started
+    Use "repo status" to check on the progress
+    Sync for repository 6.2_server_x86_64_supplementary started
+    Use "repo status" to check on the progress
+    Sync for repository 6Server_server_x86_64_cf-tools_1.0 started
+    Use "repo status" to check on the progress
+    Sync for repository 6.2_server_x86_64_cf-tools_1.0 started
+    Use "repo status" to check on the progress
+    
+    
+    +------------------------------------------+
+          Status for 6Server_server_x86_64
+    +------------------------------------------+
+    Repository: 6Server_server_x86_64
+    Number of Packages: 8344
+    Last Sync: 2012-07-26 02:28:21-05:00
+    Currently syncing: Downloading Items or Verifying (56 of 8351 items downloaded. 11781386640.0 bytes remaining)
+    
+    +------------------------------------------+
+            Status for 6.2_server_x86_64
+    +------------------------------------------+
+    Repository: 6.2_server_x86_64
+    Number of Packages: 0
+    Last Sync: never
+    Currently syncing: Downloading Items or Verifying (407 of 7287 items downloaded. 10158267388.0 bytes remaining)
+    
+    +------------------------------------------+
+     Status for 6Server_server_x86_64_supplementary
+    +------------------------------------------+
+    Repository: 6Server_server_x86_64_supplementary
+    Number of Packages: 0
+    Last Sync: never
+    Currently syncing: progress unknown
+    
+    +------------------------------------------+
+     Status for 6.2_server_x86_64_supplementary
+    +------------------------------------------+
+    Repository: 6.2_server_x86_64_supplementary
+    Number of Packages: 0
+    Last Sync: never
+    Currently syncing: progress unknown
+    
+    +------------------------------------------+
+     Status for 6Server_server_x86_64_cf-tools_1.0
+    +------------------------------------------+
+    Repository: 6Server_server_x86_64_cf-tools_1.0
+    Number of Packages: 26
+    Last Sync: 2012-07-26 02:01:54-05:00
+    Currently syncing: progress unknown
+    
+    +------------------------------------------+
+      Status for 6.2_server_x86_64_cf-tools_1.0
+    +------------------------------------------+
+    Repository: 6.2_server_x86_64_cf-tools_1.0
+    Number of Packages: 0
+    Last Sync: never
+    Currently syncing: progress unknown
+    
+    =========================================================================
+    | Waiting 10 seconds (press CTRL+C to cancel when all repos are synced) |
+    =========================================================================
 
 todo
 ----
