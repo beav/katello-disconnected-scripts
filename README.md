@@ -26,13 +26,13 @@ NOTE: `katello-disconnected-sync` can take both `--sync` and `--export-dir` opti
 * once the import is complete, enable and sync over whichever repos you selected earlier
 * if desired, toggle back to the CDN with `point-to-cdn.py`
 
-EXAMPLES
+examples
 --------
-# python katello-disconnected-configure -m manifest.zip -s scripts -o /var/katello-content/ -r 6.2,6Server -a x86_64 -c cf-tools,supplementary
+`python katello-disconnected-configure -m manifest.zip -s scripts -o /var/katello-content/ -r 6.2,6Server -a x86_64 -c cf-tools,supplementary`
 
 This will only process repos matching the specified criteria, though many more repositories are available for this menifest.
 
-# cat scripts/repos.list
+`cat scripts/repos.list`
 6.2_server_x86_64	/content/dist/rhel/server/6/6.2/x86_64/os
 6Server_server_x86_64	/content/dist/rhel/server/6/6Server/x86_64/os
 6.2_server_x86_64_supplementary	/content/dist/rhel/server/6/6.2/x86_64/supplementary/os
@@ -40,7 +40,7 @@ This will only process repos matching the specified criteria, though many more r
 6.2_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6.2/x86_64/cf-tools/1.0/os
 6Server_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6Server/x86_64/cf-tools/1.0/os
 
-# python katello-disconnected-sync --sync -r scripts/repos.list --watch
+`python katello-disconnected-sync --sync -r scripts/repos.list --watch`
 Sync for repository 6Server_server_x86_64 started
 Use "repo status" to check on the progress
 Sync for repository 6.2_server_x86_64 started
@@ -54,59 +54,7 @@ Use "repo status" to check on the progress
 Sync for repository 6.2_server_x86_64_cf-tools_1.0 started
 Use "repo status" to check on the progress
 
-+------------------------------------------+
-      Status for 6Server_server_x86_64
-+------------------------------------------+
-Repository: 6Server_server_x86_64
-Number of Packages: 8344
-Last Sync: 2012-07-26 02:28:21-05:00
-Currently syncing: Downloading Metadata (0 of 0 items downloaded. 0.0 bytes remaining)
-
-+------------------------------------------+
-        Status for 6.2_server_x86_64
-+------------------------------------------+
-Repository: 6.2_server_x86_64
-Number of Packages: 0
-Last Sync: never
-Currently syncing: Downloading Metadata (0 of 0 items downloaded. 0.0 bytes remaining)
-
-+------------------------------------------+
- Status for 6Server_server_x86_64_supplementary
-+------------------------------------------+
-Repository: 6Server_server_x86_64_supplementary
-Number of Packages: 0
-Last Sync: never
-Currently syncing: progress unknown
-
-+------------------------------------------+
- Status for 6.2_server_x86_64_supplementary
-+------------------------------------------+
-Repository: 6.2_server_x86_64_supplementary
-Number of Packages: 0
-Last Sync: never
-Currently syncing: progress unknown
-
-+------------------------------------------+
- Status for 6Server_server_x86_64_cf-tools_1.0
-+------------------------------------------+
-Repository: 6Server_server_x86_64_cf-tools_1.0
-Number of Packages: 26
-Last Sync: 2012-07-26 02:01:54-05:00
-Currently syncing: progress unknown
-
-+------------------------------------------+
-  Status for 6.2_server_x86_64_cf-tools_1.0
-+------------------------------------------+
-Repository: 6.2_server_x86_64_cf-tools_1.0
-Number of Packages: 0
-Last Sync: never
-Currently syncing: progress unknown
-
-=========================================================================
-| Waiting 10 seconds (press CTRL+C to cancel when all repos are synced) |
-=========================================================================
-
-TODO
+todo
 ----
 
 * replace one-liner with a small script
