@@ -8,10 +8,10 @@ how to use
 * set hostname to match in `/etc/pulp/pulp.conf` and `/etc/pulp/admin/admin.conf`
 * initialize the pulp server with `service pulp-server init` and `service pulp-server start`
 * run `pulp-admin auth login --username admin` (this step will go away once I get oauth working). You can get the password from `/etc/pulp/pulp.conf`
-* run the script: `python katello-disconnected-configure -m manifest.zip -o /path/to/export/location/ -s /path/to/output/scripts/`.<del>Not all of the command-line arguments listed in `--help` currently work.</del>
+* run the script: `python katello-disconnected-configure -m manifest.zip -o /path/to/export/location/ -s /path/to/output/scripts/`.<del>Not all of the command-line arguments listed in `--help` currently work.</del> To restrict what architectures, release versions and channels are used, see --help.
 * once `katello-disconnected-configure` runs, you will have three files in your output script dir: `sync_all.sh`, `export_all.sh`, and `repos.list`. If you run `bash -x sync_all.sh`, it will sync everything from your manifest but will take awhile. You can pare it down a bit before running if you want, but make sure you make the same changes to export.sh. Alternatively, edit down repos.list (or create a new list from this) and use `katello-disconnected-sync -r repos.list --sync`
 * once the sync completes, run `bash -x export.sh`. This will not take as much time as the sync. Alternatively, use `katello-disconnected-sync -r repos.list --export-dir /path/to/export/location/`
-* NOTE: `katello-disconnected-sync` can take both `--sync` and `--export-dir` options at the same time; however, the sync will most likely not be completed when the export attempts to run. In this case, use `--status` with `--sync` to determine when the repos are done syncing before starting the export
+* NOTE: `katello-disconnected-sync` can take both `--sync` and `--export-dir` options at the same time; however, this will invoke the --watch option, which will loop continuously after the sync has started. You must cancel the status loop once all repos are synced to begin the export.
 
 Once a full export is complete, you can <del>copy the export directory over to the katello server in `/var/www/html/content`</del> (acts weird, needs work), or just host it off your laptop if that's easier by running `python -m SimpleHTTPServer` from the export root.
 
@@ -30,4 +30,6 @@ TODO
 * export from a CFSE instead of/in addition to the CDN
 * make importing work from httpd, odd cert issue
 * pulp might be re-downloading after changing hostname, need to look into
-* ability to specify --version=6Server --arch=x86_64 --arch=i386 --version=5Server and so on
+* <del>ability to specify --version=6Server --arch=x86_64 --arch=i386 --version=5Server and so on</del>
+* <del>add KeyboardInterrupt detection in both scripts</del>
+* Clean up --dry-run (currently only supresses repo create, need to add it throughout)
