@@ -7,7 +7,7 @@ import time
 from optparse import OptionParser
 
 
-usage = "usage: %prog [options]\nThis will sync and/or export repos to a specific directory. Use --help for a full list of options."
+usage = "usage: %prog [options]\nUses pulp-admin against a list of repos to sync and/or export them to a specific directory. Use --help for a full list of options."
 parser = OptionParser(usage=usage, description="")
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
 parser.add_option("-s", "--sync", action="store_true", dest="sync",
@@ -17,7 +17,10 @@ parser.add_option("-r", "--repo-list", dest="repo_list",
                   help="File containing list of repositories to act on")
 parser.add_option("-e", "--export-dir", dest="export_dir",
                   help="Directory to use as the disconnected synchronization store", metavar="DIRECTORY")
-parser.add_option("-w", "--watch", action="store_true", dest="watch", help="Loop through every 5 seconds watching status until CTRL+C is pressed.")
+parser.add_option("-w", "--watch", action="store_true", dest="watch", help="Loop through every -t seconds watching status until CTRL+C is pressed.")
+parser.add_option("-t", "--time-to-wait", default=10, dest="wait", 
+                  help="Seconds to wait between status checks (default 10).")
+
 
 (options, args) = parser.parse_args()
 
@@ -48,7 +51,7 @@ def sync_repos(repos):
             p_v("syncing repo %s" % repo)
             os.system(REPO_SYNC_STR % (repo))
     except KeyboardInterrupt:
-        sys.exit(0)
+        raise
     except:
         raise
 
@@ -58,7 +61,7 @@ def export_repos(repos, export_dir):
             p_v("exporting repo %s"% repo)
             os.system(REPO_EXPORT_STR % (repo, options.export_dir + repos[repo]))
     except KeyboardInterrupt:
-        sys.exit(0)
+        raise
     except:
         raise
 
@@ -72,7 +75,7 @@ def status_repos(repos):
                 p_v("statusing repo export of: %s"% repo)
                 os.system(REPO_EXPORT_STATUS_STR % repo)
     except KeyboardInterrupt:
-        sys.exit(0)
+        raise
     except:
         raise
 
@@ -82,9 +85,9 @@ def continuous_status_repos(repos):
         try:
             status_repos(repos)
             print("=========================================================================")
-            print("| Waiting 10 seconds (press CTRL+C to cancel when all repos are synced) |")
+            print("| Waiting %s seconds (press CTRL+C to cancel when all repos are synced) |" % options.wait)
             print("=========================================================================")
-            time.sleep(10)
+            time.sleep(options.wait)
             os.system("clear")
         except KeyboardInterrupt:
             break

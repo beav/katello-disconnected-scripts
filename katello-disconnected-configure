@@ -15,7 +15,7 @@ from optparse import OptionParser
 from zipfile import ZipFile
 
 
-usage = "usage: %prog [options]\nThis will configure a disconnected environment for katello. Use --help for a list of options."
+usage = "usage: %prog [options]\nConfigure a disconnected environment for katello using a subscription manifest and pulp-admin."
 parser = OptionParser(usage=usage, description="")
 parser.add_option("-m", "--manifest", dest="manifest",
                   help="read manifest from FILE", metavar="FILE")
@@ -132,6 +132,8 @@ def create_dir(directory, cert_location, with_listing=False):
                 shutil.rmtree(options.output_dir)
         p_v("creating dir %s" % directory)
         os.makedirs(options.output_dir + directory)
+    except KeyboardInterrupt:
+        raise
     except OSError, e:
         # if the dir is already there, pass
         if e.errno == 17:
@@ -148,6 +150,8 @@ def chown_dirs(path):
         for root, dirs, files in os.walk(path):
             for dir in dirs:
                 os.chown(os.path.join(root, dir),48,48)
+    except KeyboardInterrupt:
+        raise
     except:
         print("unable to set permissions for apache on %s" % path)
         pass
@@ -167,6 +171,8 @@ try:
     zip_file.extractall(workdir)
     zip_file = ZipFile(os.path.join(workdir, "consumer_export.zip"), "r")
     zip_file.extractall(workdir)
+except KeyboardInterrupt:
+    raise
 except:
     print "unable to exttract manifest"
     raise
@@ -214,6 +220,8 @@ for product in products:
     product_json = json.load(product_file)
     try:
         cert_location = product_cert_mapping[product_json['id']]
+    except KeyboardInterrupt:
+        raise
     except KeyError:
         # if there's no mapping for this product, just skip
         p_v("skipping product json %s, not found in mapping" % product)
@@ -296,6 +304,8 @@ for u in full_content_urls:
         export_writer.write(REPO_EXPORT_STR % (repo_id, options.output_dir + u) + '\n')
 	# vvaldez adding single list file with accompanying script
         repos_writer.write(repo_id + '\t' + u + '\n')
+    except KeyboardInterrupt:
+        raise
     except:
         print "unable to write file"
         raise
