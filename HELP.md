@@ -1,5 +1,5 @@
 `python katello-disconnected-configure --help`  
-    Usage: katello-disconnected-configure [options]
+    Usage: katello-disconnected-configure [options]  
     This will configure a disconnected environment for katello. Use --help for a list of options.
     
     Options:
@@ -32,7 +32,7 @@
                             would be created
     
 `python katello-disconnected-sync --help`  
-    Usage: katello-disconnected-sync [options]
+    Usage: katello-disconnected-sync [options]  
     This will sync and/or export repos to a specific directory. Use --help for a full list of options.
     
     Options:
