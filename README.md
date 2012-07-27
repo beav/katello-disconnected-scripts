@@ -21,7 +21,7 @@ how to use
 NOTE: `katello-disconnected-sync` can take both `--sync` and `--export-dir` options at the same time; however, this will invoke the --watch option, which will loop continuously after the sync has started. You must cancel the status loop once all repos are synced to begin the export.
 * once a full export is complete, copy the exported directory to the destination katello server, if it will be on a different system
 * serve out the exported content with:`python -m SimpleHTTPServer` from the export root
-* alter the CDN location katello web ui or shell to the exported server and port
+* alter the CDN location in katello web ui or shell to the exported server and port
 * perform a manifest import (ensure the exported content is accessible before doing this)
 * once the import is complete, enable and sync over whichever repos you selected earlier
 * if desired, toggle back to the CDN with `point-to-cdn.py`
@@ -33,14 +33,15 @@ examples
 This will only process repos matching the specified criteria, though many more repositories are available for this menifest.
 
 `cat scripts/repos.list`
-6.2_server_x86_64	/content/dist/rhel/server/6/6.2/x86_64/os
-6Server_server_x86_64	/content/dist/rhel/server/6/6Server/x86_64/os
-6.2_server_x86_64_supplementary	/content/dist/rhel/server/6/6.2/x86_64/supplementary/os
-6Server_server_x86_64_supplementary	/content/dist/rhel/server/6/6Server/x86_64/supplementary/os
-6.2_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6.2/x86_64/cf-tools/1.0/os
-6Server_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6Server/x86_64/cf-tools/1.0/os
+    6.2_server_x86_64	/content/dist/rhel/server/6/6.2/x86_64/os
+    6Server_server_x86_64	/content/dist/rhel/server/6/6Server/x86_64/os
+    6.2_server_x86_64_supplementary	/content/dist/rhel/server/6/6.2/x86_64/supplementary/os
+    6Server_server_x86_64_supplementary	/content/dist/rhel/server/6/6Server/x86_64/supplementary/os
+    6.2_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6.2/x86_64/cf-tools/1.0/os
+    6Server_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6Server/x86_64/cf-tools/1.0/os
 
-`python katello-disconnected-sync --sync -r scripts/repos.list --watch`
+`python katello-disconnected-sync --sync -r scripts/repos.list --export-dir /var/katello-content/`
+
     Sync for repository 6Server_server_x86_64 started
     Use "repo status" to check on the progress
     Sync for repository 6.2_server_x86_64 started
@@ -106,6 +107,12 @@ This will only process repos matching the specified criteria, though many more r
     =========================================================================
     | Waiting 10 seconds (press CTRL+C to cancel when all repos are synced) |
     =========================================================================
+
+You can also run operation independently:
+`python katello-disconnected-sync --sync -r scripts/repos.list`
+`python katello-disconnected-sync --export-dir /var/katello-content/ -r scripts/repos.list --status`
+`python katello-disconnected-sync --sync -r scripts/repos.list --watch`
+
 
 todo
 ----
