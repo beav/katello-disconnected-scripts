@@ -12,13 +12,13 @@ how to use
 
 * enable the katello repo (see https://fedorahosted.org/katello/wiki/Install for the repo info)
 * install `pulp` and `pulp-admin` (see http://pulpproject.org/ug/UGInstallation.html)
-* set proper hostname in `/etc/pulp/pulp.conf` and `/etc/pulp/admin/admin.conf`
+* set proper hostname in _/etc/pulp/pulp.conf_ and _/etc/pulp/admin/admin.conf_
 * initialize the pulp server with `service pulp-server init` and `service pulp-server start`
-* run `pulp-admin auth login --username admin` (this step will go away once I get oauth working). You can get the password from `/etc/pulp/pulp.conf`
-* run the script: `python katello-disconnected-configure -m manifest.zip -o /path/to/export/location/ -s /path/to/output/scripts/`.<del>Not all of the command-line arguments listed in `--help` currently work.</del> To restrict what architectures, release versions and channels are used, see --help.
-* once `katello-disconnected-configure` runs, you will have three files in your output script dir: `sync_all.sh`, `export_all.sh`, and `repos.list`. If you run `bash -x sync_all.sh`, it will sync everything from your manifest but will take awhile. You can pare it down a bit before running if you want, but make sure you make the same changes to export.sh. Alternatively, edit down repos.list (or create a new list from this) and use `katello-disconnected-sync -r repos.list --sync`
-* once the sync completes, run `bash -x export.sh`. This will not take as much time as the sync. Alternatively, use `katello-disconnected-sync -r repos.list --export-dir /path/to/export/location/`
-NOTE: `katello-disconnected-sync` can take both `--sync` and `--export-dir` options at the same time; however, this will invoke the --watch option, which will loop continuously after the sync has started. You must cancel the status loop once all repos are synced to begin the export.
+* run `pulp-admin auth login --username admin` (this step will go away once I get oauth working). You can get the password from _/etc/pulp/pulp.conf_
+* run the script: `python katello-disconnected-configure -m manifest.zip -o /path/to/export/location/ -s /path/to/output/scripts/`.<del>Not all of the command-line arguments listed in __--help__ currently work.</del> To restrict what architectures, release versions and channels are used, see --help.
+* once `katello-disconnected-configure` runs, you will have three files in your output script dir: __sync_all.sh__, __export_all.sh__, and __repos.list__. If you run `bash -x sync_all.sh`, it will sync everything from your manifest but will take awhile. You can pare it down a bit before running if you want, but make sure you make the same changes to export.sh. Alternatively, edit down repos.list (or create a new list from this) and use `katello-disconnected-sync -r repos.list --sync`
+* once the sync completes, run `bash -x export.sh`. This will not take as much time as the sync. Alternatively, use `katello-disconnected-sync -r repos.list --export-dir /path/to/export/location/`  
+> `katello-disconnected-sync` can take both `--sync` and `--export-dir` options at the same time; however, this will invoke the --watch option, which will loop continuously after the sync has started. You must cancel the status loop once all repos are synced to begin the export.
 * once a full export is complete, copy the exported directory to the destination katello server, if it will be on a different system
 * serve out the exported content with:`python -m SimpleHTTPServer` from the export root
 * alter the CDN location in katello web ui or shell to the exported server and port
