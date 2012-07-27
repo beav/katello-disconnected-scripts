@@ -32,7 +32,8 @@ examples
 
 This will only process repos matching the specified criteria, though many more repositories are available for this menifest.
 
-`cat scripts/repos.list`
+`cat scripts/repos.list`  
+
     6.2_server_x86_64	/content/dist/rhel/server/6/6.2/x86_64/os
     6Server_server_x86_64	/content/dist/rhel/server/6/6Server/x86_64/os
     6.2_server_x86_64_supplementary	/content/dist/rhel/server/6/6.2/x86_64/supplementary/os
@@ -40,7 +41,7 @@ This will only process repos matching the specified criteria, though many more r
     6.2_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6.2/x86_64/cf-tools/1.0/os
     6Server_server_x86_64_cf-tools_1.0	/content/dist/rhel/server/6/6Server/x86_64/cf-tools/1.0/os
 
-`python katello-disconnected-sync --sync -r scripts/repos.list --export-dir /var/katello-content/`
+`python katello-disconnected-sync --sync -r scripts/repos.list --export-dir /var/katello-content/`  
 
     Sync for repository 6Server_server_x86_64 started
     Use "repo status" to check on the progress
@@ -108,10 +109,10 @@ This will only process repos matching the specified criteria, though many more r
     | Waiting 10 seconds (press CTRL+C to cancel when all repos are synced) |
     =========================================================================
 
-You can also run operation independently:
-`python katello-disconnected-sync --sync -r scripts/repos.list`
-`python katello-disconnected-sync --export-dir /var/katello-content/ -r scripts/repos.list --status`
-`python katello-disconnected-sync --sync -r scripts/repos.list --watch`
+You can also run operation independently:  
+`python katello-disconnected-sync --sync -r scripts/repos.list`  
+`python katello-disconnected-sync --export-dir /var/katello-content/ -r scripts/repos.list --status`  
+`python katello-disconnected-sync --sync -r scripts/repos.list --watch`  
 
 
 todo
