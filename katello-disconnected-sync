@@ -20,6 +20,8 @@ parser.add_option("-e", "--export-dir", dest="export_dir",
 parser.add_option("-w", "--watch", action="store_true", dest="watch", help="Loop through every -t seconds watching status until CTRL+C is pressed.")
 parser.add_option("-t", "--time-to-wait", default=10, dest="wait", 
                   help="Seconds to wait between status checks (default 10).")
+parser.add_option("-f", "--force", action="store_true", dest="force",
+                  help="Force overwrite of any existing exported directory.")
 
 
 (options, args) = parser.parse_args()
@@ -28,6 +30,8 @@ opt_err = False
 if not (options.sync or options.export_dir or options.status):
     print "error: One or more of the following are required: --sync, --export-dir, --status."
     opt_err = True
+if options.sync and options.export_dir:
+    options.watch = True
 if not options.repo_list:
     print "error: --repo-list is required."
     opt_err = True
@@ -46,6 +50,7 @@ def p_v(str):
         print str
 
 def sync_repos(repos):
+    # loop through repos and request sync with each one
     try:
         for repo in repos:
             p_v("syncing repo %s" % repo)
@@ -56,22 +61,28 @@ def sync_repos(repos):
         raise
 
 def export_repos(repos, export_dir):
+    # loop through repos and request export on each one
     try:
         for repo in repos:
             p_v("exporting repo %s"% repo)
-            os.system(REPO_EXPORT_STR % (repo, options.export_dir + repos[repo]))
+            if options.force:
+                os.system(REPO_EXPORT_STR % (repo, options.export_dir + repos[repo]) + " --overwrite")
+            else:
+                os.system(REPO_EXPORT_STR % (repo, options.export_dir + repos[repo]))
     except KeyboardInterrupt:
         raise
     except:
         raise
 
-def status_repos(repos):
+def status_repos(repos,type):
+    # Loop through repos and request status on each one, different depending on if status or export
     try:
         for repo in repos:
-            if options.sync:
+            if type == "sync":
                 p_v("statusing repo sync of: %s"% repo)
                 os.system(REPO_SYNC_STATUS_STR % repo)
-            if options.export_dir and not options.sync:		# In the case that both export and sync are specified, only show sync status, otherwise it will attempt to show export status also which will fail untnil the sync is done and export has been initiated
+            elif type == "export":		
+            # In the case that both export and sync are specified, only show sync status, otherwise it will attempt to show export status also which will fail untnil the sync is done and export has been initiated
                 p_v("statusing repo export of: %s"% repo)
                 os.system(REPO_EXPORT_STATUS_STR % repo)
     except KeyboardInterrupt:
@@ -79,13 +90,13 @@ def status_repos(repos):
     except:
         raise
 
-def continuous_status_repos(repos):
+def continuous_status_repos(repos,type):
     while True:
-        p_v("continuous status loop starting")
+        p_v("continuous %s status loop starting" % type)
         try:
-            status_repos(repos)
+            status_repos(repos,type)
             print("=========================================================================")
-            print("| Waiting %s seconds (press CTRL+C to cancel when all repos are synced) |" % options.wait)
+            print("| Waiting %s seconds (press CTRL+C to cancel when all repos are %sed) |" % (options.wait,type))
             print("=========================================================================")
             time.sleep(options.wait)
             os.system("clear")
@@ -103,14 +114,27 @@ repos = {}
 for repo in repo_list:
     repo_name=repo.split('\t')[0]
     repo_dir=repo.split('\t')[1].strip()
+    # Using a dictionary key as the repo name and the value is the dir
     repos[repo_name] = repo_dir
-if options.sync and not options.status:
-    sync_repos(repos)
-if (options.sync and options.export_dir and not options.status) or (options.watch):
-    continuous_status_repos(repos)
-if options.export_dir and not options.status:
-    export_repos(repos, options.export_dir)
-elif options.status:
-    status_repos(repos)
+if options.sync:
+    if not options.status:
+        # Sync or watch requested
+        sync_repos(repos)
+    if options.watch:
+        # Sync and export requested, or sync with --watch
+        continuous_status_repos(repos,"sync")
+    else:
+        # Show sync status
+        status_repos(repos,"sync")
+if options.export_dir:
+    if not options.status:
+        # export or watch requested
+        export_repos(repos, options.export_dir)
+    if options.watch:
+        # Sync and export requested or export with --watch
+        continuous_status_repos(repos,"export")
+    else:
+        # Export status
+        status_repos(repos,"export")
 p_v("exiting")
 print "\n"
