@@ -96,9 +96,9 @@ def continuous_status_repos(repos,type):
         try:
             status_repos(repos,type)
             print("=========================================================================")
-            print("| Waiting %s seconds (press CTRL+C to cancel when all repos are %sed) |" % (options.wait,type))
+            print(" Waiting %s seconds (press CTRL+C to cancel when all repos are %sed) " % (options.wait,type))
             print("=========================================================================")
-            time.sleep(options.wait)
+            time.sleep(int(options.wait))
             os.system("clear")
         except KeyboardInterrupt:
             break
