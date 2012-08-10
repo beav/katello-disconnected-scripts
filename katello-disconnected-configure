@@ -126,7 +126,6 @@ def expand_variable(url, var, cert_location):
     return expanded_urls
 
 def create_dir(directory, cert_location, with_listing=False):
-    print directory, cert_location, with_listing
     try:
         p_v("creating dir %s" % options.output_dir + directory)
         os.makedirs(options.output_dir + directory)
@@ -135,7 +134,6 @@ def create_dir(directory, cert_location, with_listing=False):
     except OSError, e:
         # if the dir is already there, pass
         if e.errno == 17:
-            print "dir error is 17"
             pass
     if with_listing:
         listing_file = open(options.output_dir + directory + '/listing', 'w')
