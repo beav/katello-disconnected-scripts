@@ -39,13 +39,14 @@ parser.add_option("-c", "--channels", dest="channels",
                   help="Only create repos for specific channels (e.g. cf-tools_1.0,subscription-asset-manager_1)")
 parser.add_option("-d", "--dry-run", dest="dryrun", default=False, action="store_true", 
                   help="Do not create repos, only write scripts to show what would be created")
+parser.add_option("-n", "--cdnhost", dest="cdn_hostname", default="https://cdn.redhat.com/",
+        help="CDN hostname (https://cdn.redhat.com by default)")
 
 (options, args) = parser.parse_args()
 
 VALID_ARCHES = ['i386','x86_64','ia64']
 VALID_RELEASES = ['5.6','5.7','5.8','5Server','6.1','6.2','6.3','6Server']
 VALID_CHANNELS = ['supplementary','vt','optional','cf-tools','productivity','devtoolset','subscription-asset-manager']
-CDN_HOSTNAME = 'https://cdn.redhat.com/'
 #DEFAULT_CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
 REPO_CREATE_STR = "pulp-admin repo create --id %s --feed %s --feed_ca %s --feed_cert %s"
 REPO_SYNC_STR = "pulp-admin repo sync --id %s"
@@ -100,6 +101,7 @@ def fetch_listing(url, cert_location):
 
     if url_cache.get(url, False):
         return url_cache[url]
+    p_v("fetching %s" % url)
 
     buf = cStringIO.StringIO()
     curl.setopt(curl.URL, url)
@@ -118,7 +120,7 @@ def fetch_listing(url, cert_location):
 
 def expand_variable(url, var, cert_location):
     url_prefix = url[0:url.find('$')]
-    fetch_url = CDN_HOSTNAME + url_prefix + '/listing'
+    fetch_url = options.cdn_hostname + url_prefix + '/listing'
     releases = fetch_listing(fetch_url, cert_location).split('\n')
     expanded_urls = []
     for release in releases:
@@ -137,7 +139,7 @@ def create_dir(directory, cert_location, with_listing=False):
             pass
     if with_listing:
         listing_file = open(options.output_dir + directory + '/listing', 'w')
-        listing_file.writelines(fetch_listing(CDN_HOSTNAME + directory + '/listing', cert_location))
+        listing_file.writelines(fetch_listing(options.cdn_hostname + directory + '/listing', cert_location))
         listing_file.close()
 
 def chown_dirs(path):
@@ -296,9 +298,9 @@ for u in full_content_urls:
     sys.stdout.flush()
     try:
         # TODO: this should call directly to pulp's rest api, instead of using pulp-admin
-        p_v("executing " +  REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, cacert, cert_location) + "> /dev/null")
+        p_v("executing " +  REPO_CREATE_STR % (repo_id, options.cdn_hostname+u, cacert, cert_location) + "> /dev/null")
         if not options.dryrun:
-            os.system(REPO_CREATE_STR % (repo_id, CDN_HOSTNAME+u, cacert, cert_location) + "> /dev/null")
+            os.system(REPO_CREATE_STR % (repo_id, options.cdn_hostname+u, cacert, cert_location) + "> /dev/null")
         p_v("writing commands to files")
         sync_writer.write(REPO_SYNC_STR % repo_id + '\n')
         export_writer.write(REPO_EXPORT_STR % (repo_id, options.output_dir + u) + '\n')
