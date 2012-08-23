@@ -131,6 +131,8 @@ def expand_variable(url, var, cert_location):
     releases = fetch_listing(fetch_url, cert_location).split('\n')
     expanded_urls = []
     for release in releases:
+        if release.strip() == '':
+            continue # skip empty lines
         expanded_urls.append(url.replace(var, release))
     return expanded_urls
 
@@ -145,6 +147,8 @@ def create_dir(directory, cert_location, with_listing=False):
         if e.errno == 17:
             pass
     if with_listing:
+        if directory.endswith('/'):
+            directory = directory[:-1]
         listing_file = open(options.output_dir + directory + '/listing', 'w')
         listing_file.writelines(fetch_listing(options.cdn_hostname + directory + '/listing', cert_location))
         listing_file.close()
