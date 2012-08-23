@@ -19,7 +19,7 @@ parser = OptionParser(usage=usage, description="")
 parser.add_option("-m", "--manifest", dest="manifest",
                   help="read manifest from FILE", metavar="FILE")
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
-parser.add_option("-s", "--debug", action="store_true", dest="debug", help="debug mode")
+parser.add_option("-d", "--debug", action="store_true", dest="debug", help="debug mode")
 parser.add_option("-e", "--everything", action="store_true", dest="everything",
                   help="create repos for everything (beta, iso, srpms, debug rpms)")
 parser.add_option("-s", "--script-output-dir", dest="script_output_dir",
@@ -39,7 +39,7 @@ parser.add_option("-c", "--channels", dest="channels",
                   help="Only create repos for specific channels (e.g. cf-tools_1.0,subscription-asset-manager_1)")
 parser.add_option("-n", "--dry-run", dest="dryrun", default=False, action="store_true", 
                   help="Do not create repos, only write scripts to show what would be created")
-parser.add_option("-n", "--cdnhost", dest="cdn_hostname", default="https://cdn.redhat.com/",
+parser.add_option("-t", "--cdnhost", dest="cdn_hostname", default="https://cdn.redhat.com/",
         help="CDN hostname (https://cdn.redhat.com by default)")
 
 (options, args) = parser.parse_args()
