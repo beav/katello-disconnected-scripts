@@ -291,10 +291,14 @@ for u in full_content_urls:
         else:
             p_v("channel not specified, skipping %s" % u)
             continue
-    if u.endswith("os"):
-        repo_id = s[6] + '_' + s[4] + '_' + '_'.join(s[7:-1])
-    else:
-        repo_id = s[6] + '_' + s[4] + '_' + '_'.join(s[7:])
+    try:
+        if u.endswith("os"):
+            repo_id = s[6] + '_' + s[4] + '_' + '_'.join(s[7:-1])
+        else:
+            repo_id = s[6] + '_' + s[4] + '_' + '_'.join(s[7:])
+    except:
+        # if anything goes wrong create at least working repo id
+        repo_id = '_'.join(filter(None, s[-5:]))
 
     # we need to append this to the repoid, otherwise it will conflict with the dist version
     if beta_parser.search(u):
