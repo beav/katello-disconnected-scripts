@@ -125,6 +125,8 @@ def fetch_listing(url, cert_location):
 
 def expand_variable(url, var, cert_location):
     url_prefix = url[0:url.find('$')]
+    if url_prefix.endswith('/'):
+        url_prefix = url_prefix[:-1]
     fetch_url = options.cdn_hostname + url_prefix + '/listing'
     releases = fetch_listing(fetch_url, cert_location).split('\n')
     expanded_urls = []
