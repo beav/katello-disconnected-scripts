@@ -48,7 +48,7 @@ parser.add_option("-n", "--cdnhost", dest="cdn_hostname", default="https://cdn.r
 VALID_ARCHES = ['i386','x86_64','ia64']
 VALID_RELEASES = ['5.6','5.7','5.8','5Server','6.1','6.2','6.3','6Server']
 VALID_CHANNELS = ['supplementary','vt','optional','cf-tools','productivity','devtoolset','subscription-asset-manager']
-#DEFAULT_CLIENT_CA_CERT = '/tmp/redhat-uep.pem'
+DEFAULT_CLIENT_CA_CERT = '/etc/rhsm/ca/redhat-uep.pem'
 REPO_CREATE_STR = "pulp-admin repo create --id %s --feed %s --feed_ca %s --feed_cert %s"
 REPO_SYNC_STR = "pulp-admin repo sync --id %s"
 REPO_EXPORT_STR = "pulp-admin repo export --id %s -t %s"
