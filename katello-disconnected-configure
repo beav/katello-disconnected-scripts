@@ -20,6 +20,7 @@ parser = OptionParser(usage=usage, description="")
 parser.add_option("-m", "--manifest", dest="manifest",
                   help="read manifest from FILE", metavar="FILE")
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose mode")
+parser.add_option("-s", "--debug", action="store_true", dest="debug", help="debug mode")
 parser.add_option("-e", "--everything", action="store_true", dest="everything",
                   help="create repos for everything (beta, iso, srpms, debug rpms)")
 parser.add_option("-s", "--script-output-dir", dest="script_output_dir",
@@ -37,7 +38,7 @@ parser.add_option("-r", "--releases", dest="releases",
                   help="Only create repos for specific versions (e.g. 6Server,5.4)")
 parser.add_option("-c", "--channels", dest="channels",
                   help="Only create repos for specific channels (e.g. cf-tools_1.0,subscription-asset-manager_1)")
-parser.add_option("-d", "--dry-run", dest="dryrun", default=False, action="store_true", 
+parser.add_option("-n", "--dry-run", dest="dryrun", default=False, action="store_true", 
                   help="Do not create repos, only write scripts to show what would be created")
 parser.add_option("-n", "--cdnhost", dest="cdn_hostname", default="https://cdn.redhat.com/",
         help="CDN hostname (https://cdn.redhat.com by default)")
@@ -92,6 +93,11 @@ url_cache = {}
 # print verbose
 def p_v(str):
     if options.verbose:
+        print str
+
+# print debug
+def p_d(str):
+    if options.debug:
         print str
 
 def fetch_listing(url, cert_location):
@@ -268,6 +274,7 @@ if not options.releases:		# Added for channel matching, so releases are not excl
     releases_parser = re.compile(r'\b(?:%s)\b' % '|'.join(VALID_RELEASES))
 uncommon_parser = re.compile(r'beta|source|debug|iso')
 for u in full_content_urls:
+    p_d("processing %s" % u)
     s = u.split('/')
     if not options.enable_uncommon and uncommon_parser.search(u):
         p_v("uncommon, skipping %s" % u)
